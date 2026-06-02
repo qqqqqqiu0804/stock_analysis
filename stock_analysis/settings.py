@@ -4,9 +4,13 @@
 
 import os
 from pathlib import Path
+from dotenv import load_dotenv
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
+
+# 加载 .env 文件
+load_dotenv(BASE_DIR / '.env')
 
 # SECURITY WARNING: keep the secret key used in production secret!
 SECRET_KEY = 'django-insecure-your-secret-key-change-in-production'
@@ -153,8 +157,9 @@ CELERY_TASK_SERIALIZER = 'json'
 CELERY_RESULT_SERIALIZER = 'json'
 CELERY_TIMEZONE = 'Asia/Shanghai'
 
-# Tushare Pro Token（从 https://tushare.pro 获取）
-TUSHARE_TOKEN = '2f55c4a0b4cf5029c18fec7067d1091018e983cfd3a0f5b00aba8e19'
+# Tushare Pro Token（从环境变量读取，不要硬编码在代码中）
+import os
+TUSHARE_TOKEN = os.environ.get('TUSHARE_TOKEN', None)
 CELERY_TASK_TRACK_STARTED = True
 CELERY_TASK_TIME_LIMIT = 30 * 60  # 任务超时时间30分钟
 
