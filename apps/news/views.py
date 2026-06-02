@@ -170,25 +170,30 @@ def word_cloud_data(request, stock_code):
     except StockInfo.DoesNotExist:
         return Response({'error': '股票不存在'}, status=status.HTTP_404_NOT_FOUND)
 
-    # 获取关键词统计
+    # 获取新闻标题
     news = NewsData.objects.filter(
         stock=stock,
-        publish_time__date__gte=start_date,
-        keywords__isnull=False
+        publish_time__date__gte=start_date
     )
 
-    word_count = {}
-    for n in news:
-        if n.keywords:
-            try:
-                import json
-                keywords = json.loads(n.keywords) if isinstance(n.keywords, str) else n.keywords
-                if isinstance(keywords, list):
-                    for kw in keywords:
-                        if isinstance(kw, str):
-                            word_count[kw] = word_count.get(kw, 0) + 1
-            except (json.JSONDecodeError, TypeError):
-                pass
+    # 从标题提取关键词
+    try:
+        import jieba
+        stopwords = {'的', '了', '在', '是', '我', '有', '和', '就', '不', '人', '都',
+                     '一', '上', '也', '很', '到', '说', '要', '去', '你', '会', '着',
+                     '没有', '看', '好', '自己', '这', '他', '她', '它', '们', '那',
+                     '被', '从', '把', '让', '用', '为', '以', '但', '还', '与', '或',
+                     '及', '等', '个', '中', '对', '之', '其', '这个', '那个', '什么',
+                     '怎么', '可以', '可能', '已经', '正在', '公司', '股份', '有限'}
+
+        word_count = {}
+        for n in news:
+            words = jieba.lcut(n.title)
+            for w in words:
+                if len(w) > 1 and w not in stopwords:
+                    word_count[w] = word_count.get(w, 0) + 1
+    except ImportError:
+        word_count = {}
 
     # 按词频排序
     sorted_words = sorted(word_count.items(), key=lambda x: x[1], reverse=True)[:100]

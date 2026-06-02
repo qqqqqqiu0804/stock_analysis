@@ -204,7 +204,49 @@ function loadSentimentStats(stockCode, days) {
             $('#positiveNews').text(data.positive_count);
             $('#negativeNews').text(data.negative_count);
             $('#avgScore').text(data.average_score ? data.average_score.toFixed(4) : '-');
+
+            // 渲染饼图
+            renderSentimentPie(data);
         });
+}
+
+// 渲染情感分布饼图
+function renderSentimentPie(data) {
+    const chart = initChart('sentimentPie');
+    if (!chart) return;
+
+    const option = {
+        tooltip: {
+            trigger: 'item',
+            formatter: '{b}: {c} ({d}%)'
+        },
+        legend: {
+            bottom: 10,
+            data: ['正面', '负面', '中性']
+        },
+        series: [{
+            type: 'pie',
+            radius: ['40%', '65%'],
+            center: ['50%', '45%'],
+            avoidLabelOverlap: false,
+            itemStyle: {
+                borderRadius: 10,
+                borderColor: '#fff',
+                borderWidth: 2
+            },
+            label: {
+                show: true,
+                formatter: '{b}\n{d}%'
+            },
+            data: [
+                { value: data.positive_count, name: '正面', itemStyle: { color: '#28a745' } },
+                { value: data.negative_count, name: '负面', itemStyle: { color: '#dc3545' } },
+                { value: data.total_news - data.positive_count - data.negative_count, name: '中性', itemStyle: { color: '#6c757d' } }
+            ]
+        }]
+    };
+
+    chart.setOption(option);
 }
 
 // 加载情感趋势图
