@@ -148,12 +148,27 @@ body {
     }
 }
 
+/* 版本号样式 */
+.version-badge {
+    cursor: pointer;
+    font-size: 0.75rem;
+    padding: 4px 10px;
+    transition: all 0.2s;
+}
+
+.version-badge:hover {
+    background-color: #4472C4 !important;
+    transform: scale(1.1);
+}
+
 /* 工具提示 */
 .tooltip-inner {
     max-width: 300px;
-    padding: 8px 12px;
+    padding: 10px 14px;
     background-color: #333;
     border-radius: 6px;
+    text-align: left;
+    line-height: 1.6;
 }
 
 /* 空状态 */
