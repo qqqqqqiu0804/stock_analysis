@@ -144,12 +144,21 @@ def dashboard_sentiment_compare(request):
 
 @api_view(['GET'])
 def dashboard_latest_news(request):
-    """最新热点新闻"""
+    """最新热点新闻（优先显示有链接的真实新闻）"""
     limit = int(request.query_params.get('limit', 10))
 
+    # 优先显示有URL的真实新闻
     news = NewsData.objects.select_related('stock').filter(
-        sentiment_score__isnull=False
-    ).order_by('-publish_time')[:limit]
+        url__isnull=False
+    ).exclude(url='').order_by('-publish_time')[:limit]
+
+    if news.count() < limit:
+        # 不够的话补充没有URL的
+        remaining = limit - news.count()
+        extra = NewsData.objects.select_related('stock').filter(
+            url__isnull=True
+        ).order_by('-publish_time')[:remaining]
+        news = list(news) + list(extra)
 
     data = []
     for n in news:
