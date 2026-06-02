@@ -1,0 +1,113 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}注册 - 光伏舆情分析系统{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-md-5">
+        <div class="card shadow mt-5">
+            <div class="card-body p-5">
+                <div class="text-center mb-4">
+                    <i class="bi bi-person-plus display-4 text-primary"></i>
+                    <h3 class="mt-2">用户注册</h3>
+                    <p class="text-muted">创建您的账号</p>
+                </div>
+
+                <div id="alertBox"></div>
+
+                <form id="registerForm">
+                    <div class="mb-3">
+                        <label for="username" class="form-label">用户名</label>
+                        <input type="text" class="form-control" id="username" placeholder="请输入用户名" required>
+                    </div>
+                    <div class="mb-3">
+                        <label for="email" class="form-label">邮箱</label>
+                        <input type="email" class="form-control" id="email" placeholder="请输入邮箱" required>
+                    </div>
+                    <div class="mb-3">
+                        <label for="phone" class="form-label">手机号（选填）</label>
+                        <input type="text" class="form-control" id="phone" placeholder="请输入手机号">
+                    </div>
+                    <div class="mb-3">
+                        <label for="password" class="form-label">密码</label>
+                        <input type="password" class="form-control" id="password" placeholder="请输入密码（至少6位）" required>
+                    </div>
+                    <div class="mb-3">
+                        <label for="password_confirm" class="form-label">确认密码</label>
+                        <input type="password" class="form-control" id="password_confirm" placeholder="请再次输入密码" required>
+                    </div>
+                    <button type="submit" class="btn btn-primary w-100 py-2 mb-3" id="btnRegister">
+                        <i class="bi bi-person-plus"></i> 注册
+                    </button>
+                </form>
+
+                <div class="text-center">
+                    <span class="text-muted">已有账号？</span>
+                    <a href="/login/">立即登录</a>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+$('#registerForm').on('submit', function(e) {
+    e.preventDefault();
+
+    const username = $('#username').val().trim();
+    const email = $('#email').val().trim();
+    const phone = $('#phone').val().trim();
+    const password = $('#password').val();
+    const password_confirm = $('#password_confirm').val();
+
+    if (!username || !email || !password || !password_confirm) {
+        $('#alertBox').html('<div class="alert alert-warning">请填写所有必填项</div>');
+        return;
+    }
+
+    if (password.length < 6) {
+        $('#alertBox').html('<div class="alert alert-warning">密码长度至少6位</div>');
+        return;
+    }
+
+    if (password !== password_confirm) {
+        $('#alertBox').html('<div class="alert alert-warning">两次密码输入不一致</div>');
+        return;
+    }
+
+    $('#btnRegister').prop('disabled', true).html('<span class="loading-spinner"></span> 注册中...');
+
+    const data = { username, email, password, password_confirm };
+    if (phone) data.phone = phone;
+
+    $.ajax({
+        url: '/api/users/register/',
+        type: 'POST',
+        contentType: 'application/json',
+        headers: { 'X-CSRFToken': getCookie('csrftoken') },
+        data: JSON.stringify(data),
+        success: function() {
+            $('#alertBox').html('<div class="alert alert-success">注册成功，正在跳转到登录页...</div>');
+            setTimeout(() => window.location.href = '/login/', 1500);
+        },
+        error: function(xhr) {
+            let msg = '注册失败，请重试';
+            if (xhr.responseJSON) {
+                const errors = xhr.responseJSON;
+                const firstKey = Object.keys(errors)[0];
+                if (Array.isArray(errors[firstKey])) {
+                    msg = errors[firstKey][0];
+                } else if (typeof errors[firstKey] === 'string') {
+                    msg = errors[firstKey];
+                }
+            }
+            $('#alertBox').html(`<div class="alert alert-danger">${msg}</div>`);
+            $('#btnRegister').prop('disabled', false).html('<i class="bi bi-person-plus"></i> 注册');
+        }
+    });
+});
+</script>
+{% endblock %}

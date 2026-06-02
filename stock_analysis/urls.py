@@ -18,6 +18,8 @@ urlpatterns = [
     path('news/', TemplateView.as_view(template_name='news/index.html'), name='news'),
     path('analysis/', TemplateView.as_view(template_name='analysis/index.html'), name='analysis'),
     path('reports/', TemplateView.as_view(template_name='reports/index.html'), name='reports'),
+    path('login/', TemplateView.as_view(template_name='users/login.html'), name='login'),
+    path('register/', TemplateView.as_view(template_name='users/register.html'), name='register'),
 
     # API路由
     path('api/users/', include('apps.users.urls')),
