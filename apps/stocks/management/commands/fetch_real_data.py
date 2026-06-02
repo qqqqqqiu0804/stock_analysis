@@ -21,6 +21,8 @@ class Command(BaseCommand):
         """获取K线数据，带重试"""
         if code.startswith('6'):
             secid = f'1.{code}'
+        elif code.startswith('5'):
+            secid = f'1.{code}'
         else:
             secid = f'0.{code}'
 
@@ -35,10 +37,13 @@ class Command(BaseCommand):
         for attempt in range(3):
             try:
                 resp = requests.get(url, headers=headers, timeout=15)
-                return resp.json()
+                data = resp.json()
+                if data.get('data') and data['data'].get('klines'):
+                    return data
+                return None
             except Exception:
                 if attempt < 2:
-                    time.sleep((attempt + 1) * 5)
+                    time.sleep((attempt + 1) * 8)
         return None
 
     def handle(self, *args, **options):
@@ -64,7 +69,7 @@ class Command(BaseCommand):
 
         for i, stock in enumerate(stocks):
             if i > 0:
-                time.sleep(5)
+                time.sleep(12)
 
             self.stdout.write(f'正在获取 {stock.stock_code} {stock.stock_name}...')
 
