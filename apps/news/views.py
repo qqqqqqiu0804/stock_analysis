@@ -69,6 +69,9 @@ class NewsQueryView(APIView):
         if keyword:
             queryset = queryset.filter(Q(title__icontains=keyword) | Q(content__icontains=keyword))
 
+        # 排序：有URL的优先，再按时间倒序
+        queryset = queryset.order_by('-url', '-publish_time')
+
         # 分页
         page_size = int(request.query_params.get('page_size', 20))
         page = int(request.query_params.get('page', 1))
