@@ -324,9 +324,12 @@ function loadLatestNews() {
                 const badgeText = news.sentiment_label === 'positive' ? '正面' :
                                   news.sentiment_label === 'negative' ? '负面' : '中性';
 
-                const titleLink = news.url
-                    ? `<a href="${news.url}" target="_blank" class="text-decoration-none text-dark">${news.title.substring(0, 40)}${news.title.length > 40 ? '...' : ''}</a>`
-                    : `<span>${news.title.substring(0, 40)}${news.title.length > 40 ? '...' : ''}</span>`;
+                let titleHtml = '';
+                if (news.url) {
+                    titleHtml = `<a href="${news.url}" target="_blank" style="color:#0066cc;text-decoration:underline;cursor:pointer;">${news.title.substring(0, 40)}${news.title.length > 40 ? '...' : ''}</a>`;
+                } else {
+                    titleHtml = `<span>${news.title.substring(0, 40)}${news.title.length > 40 ? '...' : ''}</span>`;
+                }
 
                 html += `
                     <div class="list-group-item list-group-item-action">
@@ -334,7 +337,7 @@ function loadLatestNews() {
                             <div class="flex-grow-1">
                                 <span class="badge ${badgeClass} me-1">${badgeText}</span>
                                 <strong class="me-1">${news.stock_code}</strong>
-                                ${titleLink}
+                                ${titleHtml}
                             </div>
                             <small class="text-muted ms-2">${news.publish_time}</small>
                         </div>
