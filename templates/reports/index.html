@@ -1,0 +1,227 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}分析报告 - 光伏舆情分析系统{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-md-11">
+        <div class="d-flex justify-content-between align-items-center mb-4">
+            <h2><i class="bi bi-file-earmark-text"></i> 分析报告</h2>
+            <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#createReportModal">
+                <i class="bi bi-plus-circle"></i> 生成新报告
+            </button>
+        </div>
+
+        <!-- 报告列表 -->
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0"><i class="bi bi-list-ul"></i> 报告列表</h5>
+            </div>
+            <div class="card-body">
+                <div class="table-responsive">
+                    <table class="table table-hover">
+                        <thead>
+                            <tr>
+                                <th>报告标题</th>
+                                <th>股票</th>
+                                <th>报告类型</th>
+                                <th>分析周期</th>
+                                <th>状态</th>
+                                <th>生成时间</th>
+                                <th>操作</th>
+                            </tr>
+                        </thead>
+                        <tbody id="reportTableBody">
+                            <!-- 动态加载 -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- 生成报告模态框 -->
+<div class="modal fade" id="createReportModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title"><i class="bi bi-plus-circle"></i> 生成分析报告</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <form id="createReportForm">
+                    <div class="mb-3">
+                        <label for="reportStock" class="form-label">选择股票</label>
+                        <select class="form-select" id="reportStock" required>
+                            <option value="">请选择股票</option>
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label for="reportType" class="form-label">报告类型</label>
+                        <select class="form-select" id="reportType" required>
+                            <option value="pdf">PDF报告</option>
+                            <option value="excel">Excel报告</option>
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label for="reportDays" class="form-label">分析周期</label>
+                        <select class="form-select" id="reportDays">
+                            <option value="30">近30天</option>
+                            <option value="60">近60天</option>
+                            <option value="90" selected>近90天</option>
+                            <option value="180">近180天</option>
+                        </select>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">取消</button>
+                <button type="button" class="btn btn-primary" id="btnCreateReport">
+                    <i class="bi bi-file-earmark-text"></i> 生成报告
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+// 加载股票选项
+function loadStockOptions() {
+    apiRequest(`${API_BASE}/stocks/list/`)
+        .done(function(data) {
+            let html = '<option value="">请选择股票</option>';
+            data.results.forEach(stock => {
+                html += `<option value="${stock.stock_code}">${stock.stock_code} - ${stock.stock_name}</option>`;
+            });
+            $('#reportStock').html(html);
+
+            // 从URL参数获取股票代码
+            const urlParams = new URLSearchParams(window.location.search);
+            const stockCode = urlParams.get('stock_code');
+            if (stockCode) {
+                $('#reportStock').val(stockCode);
+            }
+        });
+}
+
+// 加载报告列表
+function loadReportList() {
+    showLoading('reportTableBody');
+
+    apiRequest(`${API_BASE}/reports/list/`)
+        .done(function(data) {
+            let html = '';
+            data.results.forEach(report => {
+                const statusBadge = getStatusBadge(report.status);
+                const typeBadge = report.report_type === 'pdf' ?
+                    '<span class="badge bg-danger">PDF</span>' :
+                    '<span class="badge bg-success">Excel</span>';
+
+                html += `
+                    <tr>
+                        <td>${report.title}</td>
+                        <td>${report.stock_code} - ${report.stock_name}</td>
+                        <td>${typeBadge}</td>
+                        <td>${report.start_date} 至 ${report.end_date}</td>
+                        <td>${statusBadge}</td>
+                        <td>${formatDate(report.created_at)}</td>
+                        <td>
+                            ${report.status === 'completed' ? `
+                                <a href="${API_BASE}/reports/download/${report.id}/" class="btn btn-sm btn-outline-primary">
+                                    <i class="bi bi-download"></i> 下载
+                                </a>
+                            ` : ''}
+                            <button class="btn btn-sm btn-outline-danger" onclick="deleteReport(${report.id})">
+                                <i class="bi bi-trash"></i>
+                            </button>
+                        </td>
+                    </tr>
+                `;
+            });
+            $('#reportTableBody').html(html || '<tr><td colspan="7" class="text-center text-muted">暂无报告</td></tr>');
+        })
+        .fail(function() {
+            showError('reportTableBody', '加载报告列表失败');
+        });
+}
+
+// 获取状态标签
+function getStatusBadge(status) {
+    switch (status) {
+        case 'completed':
+            return '<span class="badge bg-success">已完成</span>';
+        case 'pending':
+            return '<span class="badge bg-warning">生成中</span>';
+        case 'failed':
+            return '<span class="badge bg-danger">失败</span>';
+        default:
+            return '<span class="badge bg-secondary">未知</span>';
+    }
+}
+
+// 生成报告
+function createReport() {
+    const stockCode = $('#reportStock').val();
+    const reportType = $('#reportType').val();
+    const days = parseInt($('#reportDays').val()) || 90;
+
+    if (!stockCode) {
+        showToast('请选择股票', 'warning');
+        return;
+    }
+
+    const $btn = $('#btnCreateReport');
+    $btn.prop('disabled', true).html('<span class="loading-spinner"></span> 生成中...');
+
+    apiRequest(`${API_BASE}/reports/create/`, {
+        type: 'POST',
+        data: JSON.stringify({
+            stock_code: stockCode,
+            report_type: reportType,
+            days: days
+        })
+    })
+    .done(function(data) {
+        showToast('报告生成成功');
+        $('#createReportModal').modal('hide');
+        loadReportList();
+    })
+    .fail(function(xhr) {
+        const errorMsg = xhr.responseJSON?.error || '报告生成失败';
+        showToast(errorMsg, 'danger');
+    })
+    .always(function() {
+        $btn.prop('disabled', false).html('<i class="bi bi-file-earmark-text"></i> 生成报告');
+    });
+}
+
+// 删除报告
+function deleteReport(reportId) {
+    if (!confirm('确定要删除这个报告吗？')) return;
+
+    apiRequest(`${API_BASE}/reports/delete/${reportId}/`, {
+        type: 'DELETE'
+    })
+    .done(function() {
+        showToast('报告已删除');
+        loadReportList();
+    })
+    .fail(function() {
+        showToast('删除失败', 'danger');
+    });
+}
+
+// 事件绑定
+$('#btnCreateReport').on('click', createReport);
+
+// 页面加载
+$(document).ready(function() {
+    loadStockOptions();
+    loadReportList();
+});
+</script>
+{% endblock %}

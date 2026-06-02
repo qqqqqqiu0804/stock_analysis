@@ -1,0 +1,359 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}舆情分析 - 光伏舆情分析系统{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-md-11">
+        <div class="d-flex justify-content-between align-items-center mb-4">
+            <h2><i class="bi bi-newspaper"></i> 舆情分析</h2>
+            <div class="d-flex gap-2">
+                <select id="stockSelect" class="form-select" style="width: 200px;">
+                    <option value="">选择股票</option>
+                </select>
+                <select id="sentimentFilter" class="form-select" style="width: 120px;">
+                    <option value="">全部情感</option>
+                    <option value="positive">正面</option>
+                    <option value="negative">负面</option>
+                    <option value="neutral">中性</option>
+                </select>
+                <select id="daysFilter" class="form-select" style="width: 120px;">
+                    <option value="7">近7天</option>
+                    <option value="30" selected>近30天</option>
+                    <option value="90">近90天</option>
+                </select>
+            </div>
+        </div>
+
+        <!-- 情感统计卡片 -->
+        <div class="row g-3 mb-4">
+            <div class="col-md-3">
+                <div class="stat-card info">
+                    <div class="stat-value" id="totalNews">-</div>
+                    <div class="stat-label">新闻总数</div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="stat-card success">
+                    <div class="stat-value" id="positiveNews">-</div>
+                    <div class="stat-label">正面新闻</div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="stat-card warning">
+                    <div class="stat-value" id="negativeNews">-</div>
+                    <div class="stat-label">负面新闻</div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="stat-card">
+                    <div class="stat-value" id="avgScore">-</div>
+                    <div class="stat-label">平均情感得分</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 图表区域 -->
+        <div class="row mb-4">
+            <div class="col-md-8">
+                <div class="card">
+                    <div class="card-header">
+                        <h5 class="mb-0"><i class="bi bi-graph-up"></i> 情感趋势图</h5>
+                    </div>
+                    <div class="card-body">
+                        <div id="sentimentChart" class="chart-container" style="height: 350px;"></div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="card">
+                    <div class="card-header">
+                        <h5 class="mb-0"><i class="bi bi-pie-chart"></i> 情感分布</h5>
+                    </div>
+                    <div class="card-body">
+                        <div id="sentimentPie" class="chart-container" style="height: 350px;"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 词云图 -->
+        <div class="card mb-4">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <h5 class="mb-0"><i class="bi bi-cloud"></i> 热门关键词</h5>
+            </div>
+            <div class="card-body">
+                <div id="wordCloudChart" class="chart-container" style="height: 300px;"></div>
+            </div>
+        </div>
+
+        <!-- 新闻列表 -->
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0"><i class="bi bi-list-ul"></i> 新闻列表</h5>
+            </div>
+            <div class="card-body">
+                <div class="table-responsive">
+                    <table class="table table-hover">
+                        <thead>
+                            <tr>
+                                <th>发布时间</th>
+                                <th>标题</th>
+                                <th>来源</th>
+                                <th>情感</th>
+                                <th>得分</th>
+                            </tr>
+                        </thead>
+                        <tbody id="newsTableBody">
+                            <!-- 动态加载 -->
+                        </tbody>
+                    </table>
+                </div>
+                <nav id="newsPagination" class="mt-3">
+                    <!-- 动态分页 -->
+                </nav>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+let currentPage = 1;
+
+// 加载股票列表
+function loadStockOptions() {
+    apiRequest(`${API_BASE}/stocks/list/`)
+        .done(function(data) {
+            let html = '<option value="">选择股票</option>';
+            data.results.forEach(stock => {
+                html += `<option value="${stock.stock_code}">${stock.stock_code} - ${stock.stock_name}</option>`;
+            });
+            $('#stockSelect').html(html);
+
+            // 从URL参数获取股票代码
+            const urlParams = new URLSearchParams(window.location.search);
+            const stockCode = urlParams.get('stock_code');
+            if (stockCode) {
+                $('#stockSelect').val(stockCode);
+                loadNewsData();
+            }
+        });
+}
+
+// 加载舆情数据
+function loadNewsData(page = 1) {
+    currentPage = page;
+    const stockCode = $('#stockSelect').val();
+    const sentiment = $('#sentimentFilter').val();
+    const days = $('#daysFilter').val();
+
+    if (!stockCode) {
+        showEmpty('newsTableBody', '请先选择股票');
+        return;
+    }
+
+    // 加载统计数据
+    loadSentimentStats(stockCode, days);
+
+    // 加载图表
+    loadSentimentChart(stockCode, days);
+    loadWordCloud(stockCode);
+
+    // 加载新闻列表
+    let url = `${API_BASE}/news/query/?stock_code=${stockCode}&days=${days}&page=${page}`;
+    if (sentiment) {
+        url += `&sentiment=${sentiment}`;
+    }
+
+    apiRequest(url)
+        .done(function(data) {
+            let html = '';
+            data.results.forEach(news => {
+                const badgeClass = getSentimentBadgeClass(news.sentiment_label);
+                const sentimentText = getSentimentText(news.sentiment_label);
+
+                html += `
+                    <tr>
+                        <td>${formatDate(news.publish_time)}</td>
+                        <td>${news.title}</td>
+                        <td>${news.source_name || '-'}</td>
+                        <td><span class="badge ${badgeClass}">${sentimentText}</span></td>
+                        <td>${news.sentiment_score ? parseFloat(news.sentiment_score).toFixed(4) : '-'}</td>
+                    </tr>
+                `;
+            });
+
+            $('#newsTableBody').html(html || '<tr><td colspan="5" class="text-center text-muted">暂无数据</td></tr>');
+
+            // 渲染分页
+            renderPagination(data.total, data.page, data.page_size);
+        })
+        .fail(function() {
+            showError('newsTableBody', '加载新闻数据失败');
+        });
+}
+
+// 加载情感统计
+function loadSentimentStats(stockCode, days) {
+    apiRequest(`${API_BASE}/news/sentiment/${stockCode}/?days=${days}`)
+        .done(function(data) {
+            $('#totalNews').text(data.total_news);
+            $('#positiveNews').text(data.positive_count);
+            $('#negativeNews').text(data.negative_count);
+            $('#avgScore').text(data.average_score ? data.average_score.toFixed(4) : '-');
+        });
+}
+
+// 加载情感趋势图
+function loadSentimentChart(stockCode, days) {
+    apiRequest(`${API_BASE}/news/sentiment/${stockCode}/?days=${days}`)
+        .done(function(data) {
+            const chart = initChart('sentimentChart');
+            if (!chart || !data.daily_trend || data.daily_trend.length === 0) return;
+
+            const dates = data.daily_trend.map(d => d.date);
+            const scores = data.daily_trend.map(d => parseFloat(d.avg_score));
+            const counts = data.daily_trend.map(d => d.count);
+
+            const option = {
+                tooltip: {
+                    trigger: 'axis'
+                },
+                legend: {
+                    data: ['情感得分', '新闻数量'],
+                    top: 0
+                },
+                grid: {
+                    left: '10%',
+                    right: '10%',
+                    bottom: '15%'
+                },
+                xAxis: {
+                    type: 'category',
+                    data: dates
+                },
+                yAxis: [
+                    {
+                        type: 'value',
+                        name: '情感得分',
+                        min: 0,
+                        max: 1
+                    },
+                    {
+                        type: 'value',
+                        name: '新闻数量'
+                    }
+                ],
+                series: [
+                    {
+                        name: '情感得分',
+                        type: 'line',
+                        data: scores,
+                        smooth: true,
+                        itemStyle: { color: '#4472C4' }
+                    },
+                    {
+                        name: '新闻数量',
+                        type: 'bar',
+                        yAxisIndex: 1,
+                        data: counts,
+                        itemStyle: { color: '#ED7D31', opacity: 0.7 }
+                    }
+                ]
+            };
+
+            chart.setOption(option);
+        });
+}
+
+// 加载词云图
+function loadWordCloud(stockCode) {
+    apiRequest(`${API_BASE}/news/wordcloud/${stockCode}/?days=30`)
+        .done(function(data) {
+            const chart = initChart('wordCloudChart');
+            if (!chart || !data.words || data.words.length === 0) return;
+
+            // 使用柱状图替代词云（ECharts词云需要额外插件）
+            const topWords = data.words.slice(0, 20);
+            const option = {
+                tooltip: {
+                    trigger: 'axis',
+                    axisPointer: { type: 'shadow' }
+                },
+                grid: {
+                    left: '15%',
+                    right: '10%',
+                    bottom: '10%'
+                },
+                xAxis: {
+                    type: 'value'
+                },
+                yAxis: {
+                    type: 'category',
+                    data: topWords.map(w => w.name).reverse(),
+                    axisLabel: {
+                        width: 80,
+                        overflow: 'truncate'
+                    }
+                },
+                series: [{
+                    type: 'bar',
+                    data: topWords.map(w => w.value).reverse(),
+                    itemStyle: {
+                        color: function(params) {
+                            const colorList = ['#4472C4', '#ED7D31', '#A5A5A5', '#FFC000', '#5B9BD5', '#70AD47'];
+                            return colorList[params.dataIndex % colorList.length];
+                        }
+                    }
+                }]
+            };
+
+            chart.setOption(option);
+        });
+}
+
+// 渲染分页
+function renderPagination(total, currentPage, pageSize) {
+    const totalPages = Math.ceil(total / pageSize);
+    if (totalPages <= 1) {
+        $('#newsPagination').html('');
+        return;
+    }
+
+    let html = '<ul class="pagination justify-content-center">';
+
+    // 上一页
+    html += `<li class="page-item ${currentPage === 1 ? 'disabled' : ''}">
+        <a class="page-link" href="#" onclick="loadNewsData(${currentPage - 1}); return false;">上一页</a>
+    </li>`;
+
+    // 页码
+    for (let i = Math.max(1, currentPage - 2); i <= Math.min(totalPages, currentPage + 2); i++) {
+        html += `<li class="page-item ${i === currentPage ? 'active' : ''}">
+            <a class="page-link" href="#" onclick="loadNewsData(${i}); return false;">${i}</a>
+        </li>`;
+    }
+
+    // 下一页
+    html += `<li class="page-item ${currentPage === totalPages ? 'disabled' : ''}">
+        <a class="page-link" href="#" onclick="loadNewsData(${currentPage + 1}); return false;">下一页</a>
+    </li>`;
+
+    html += '</ul>';
+    $('#newsPagination').html(html);
+}
+
+// 事件绑定
+$('#stockSelect, #sentimentFilter, #daysFilter').on('change', function() {
+    loadNewsData(1);
+});
+
+// 页面加载
+$(document).ready(function() {
+    loadStockOptions();
+});
+</script>
+{% endblock %}

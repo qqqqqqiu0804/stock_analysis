@@ -1,0 +1,377 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}关联分析 - 光伏舆情分析系统{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-md-11">
+        <div class="d-flex justify-content-between align-items-center mb-4">
+            <h2><i class="bi bi-search"></i> 舆情与股价关联分析</h2>
+            <div class="d-flex gap-2">
+                <select id="stockSelect" class="form-select" style="width: 200px;">
+                    <option value="">选择股票</option>
+                </select>
+                <select id="daysFilter" class="form-select" style="width: 120px;">
+                    <option value="30">近30天</option>
+                    <option value="60">近60天</option>
+                    <option value="90" selected>近90天</option>
+                    <option value="180">近180天</option>
+                </select>
+                <button id="btnAnalyze" class="btn btn-primary" disabled>
+                    <i class="bi bi-play-circle"></i> 开始分析
+                </button>
+            </div>
+        </div>
+
+        <!-- 分析结果卡片 -->
+        <div class="row g-3 mb-4" id="resultCards" style="display: none;">
+            <div class="col-md-3">
+                <div class="stat-card info">
+                    <div class="stat-value" id="correlationValue">-</div>
+                    <div class="stat-label">相关系数</div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="stat-card success">
+                    <div class="stat-value" id="correlationStrength">-</div>
+                    <div class="stat-label">相关性强度</div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="stat-card warning">
+                    <div class="stat-value" id="pValue">-</div>
+                    <div class="stat-label">P值</div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="stat-card">
+                    <div class="stat-value" id="isSignificant">-</div>
+                    <div class="stat-label">显著性</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 散点图 -->
+        <div class="card mb-4">
+            <div class="card-header">
+                <h5 class="mb-0"><i class="bi bi-scatter-chart"></i> 舆情情感与股价变动散点图</h5>
+            </div>
+            <div class="card-body">
+                <div id="scatterChart" class="chart-container" style="height: 450px;">
+                    <div class="empty-state">
+                        <i class="bi bi-graph-up"></i>
+                        <p>请选择股票并点击"开始分析"</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 趋势对比图 -->
+        <div class="card mb-4">
+            <div class="card-header">
+                <h5 class="mb-0"><i class="bi bi-graph-up"></i> 情感趋势与股价走势对比</h5>
+            </div>
+            <div class="card-body">
+                <div id="trendChart" class="chart-container" style="height: 400px;">
+                    <div class="empty-state">
+                        <i class="bi bi-graph-up"></i>
+                        <p>请选择股票并点击"开始分析"</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 分析说明 -->
+        <div class="card mb-4">
+            <div class="card-header bg-info text-white">
+                <h5 class="mb-0"><i class="bi bi-info-circle"></i> 分析说明</h5>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-6">
+                        <h6>相关系数解读</h6>
+                        <ul class="list-group list-group-flush">
+                            <li class="list-group-item">0.8 ~ 1.0：强正相关</li>
+                            <li class="list-group-item">0.6 ~ 0.8：中等正相关</li>
+                            <li class="list-group-item">0.4 ~ 0.6：弱正相关</li>
+                            <li class="list-group-item">0.0 ~ 0.4：极弱相关或无相关</li>
+                            <li class="list-group-item">负值：负相关（情感越高，股价越低）</li>
+                        </ul>
+                    </div>
+                    <div class="col-md-6">
+                        <h6>P值（显著性）</h6>
+                        <ul class="list-group list-group-flush">
+                            <li class="list-group-item">P < 0.05：结果显著，相关性可信</li>
+                            <li class="list-group-item">P < 0.01：结果高度显著</li>
+                            <li class="list-group-item">P ≥ 0.05：结果不显著，可能为随机相关</li>
+                        </ul>
+                        <h6 class="mt-3">数据说明</h6>
+                        <p class="text-muted">
+                            本分析使用皮尔逊相关系数计算舆情情感得分与股价日涨跌幅之间的线性相关关系。
+                            数据点越多，分析结果越可靠。
+                        </p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 历史分析记录 -->
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0"><i class="bi bi-clock-history"></i> 历史分析记录</h5>
+            </div>
+            <div class="card-body">
+                <div class="table-responsive">
+                    <table class="table table-hover">
+                        <thead>
+                            <tr>
+                                <th>股票</th>
+                                <th>分析日期</th>
+                                <th>相关系数</th>
+                                <th>相关性强度</th>
+                                <th>P值</th>
+                                <th>显著性</th>
+                            </tr>
+                        </thead>
+                        <tbody id="historyTableBody">
+                            <!-- 动态加载 -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+// 加载股票列表
+function loadStockOptions() {
+    apiRequest(`${API_BASE}/stocks/list/`)
+        .done(function(data) {
+            let html = '<option value="">选择股票</option>';
+            data.results.forEach(stock => {
+                html += `<option value="${stock.stock_code}">${stock.stock_code} - ${stock.stock_name}</option>`;
+            });
+            $('#stockSelect').html(html);
+
+            // 从URL参数获取股票代码
+            const urlParams = new URLSearchParams(window.location.search);
+            const stockCode = urlParams.get('stock_code');
+            if (stockCode) {
+                $('#stockSelect').val(stockCode);
+                $('#btnAnalyze').prop('disabled', false);
+            }
+        });
+}
+
+// 执行分析
+function runAnalysis() {
+    const stockCode = $('#stockSelect').val();
+    const days = parseInt($('#daysFilter').val()) || 90;
+
+    if (!stockCode) {
+        showToast('请先选择股票', 'warning');
+        return;
+    }
+
+    // 显示加载状态
+    $('#btnAnalyze').prop('disabled', true).html('<span class="loading-spinner"></span> 分析中...');
+
+    apiRequest(`${API_BASE}/analysis/correlation/?stock_code=${stockCode}&days=${days}`)
+        .done(function(data) {
+            // 显示结果卡片
+            $('#resultCards').show();
+
+            // 更新统计卡片
+            if (data.correlation !== null) {
+                $('#correlationValue').text(data.correlation.toFixed(4));
+                $('#correlationStrength').text(data.strength);
+                $('#pValue').text(data.p_value ? data.p_value.toFixed(6) : '-');
+                $('#isSignificant').text(data.is_significant ? '是' : '否');
+
+                // 渲染散点图
+                renderScatterChart(data);
+
+                // 渲染趋势对比图
+                renderTrendChart(data);
+            } else {
+                $('#correlationValue').text('N/A');
+                $('#correlationStrength').text(data.strength || '数据不足');
+                $('#pValue').text('-');
+                $('#isSignificant').text('-');
+            }
+
+            showToast('分析完成');
+        })
+        .fail(function() {
+            showToast('分析失败，请稍后重试', 'danger');
+        })
+        .always(function() {
+            $('#btnAnalyze').prop('disabled', false).html('<i class="bi bi-play-circle"></i> 开始分析');
+        });
+}
+
+// 渲染散点图
+function renderScatterChart(data) {
+    const chart = initChart('scatterChart');
+    if (!chart || !data.data || data.data.length === 0) return;
+
+    const scatterData = data.data.map(d => [d.sentiment_score, d.price_change]);
+
+    const option = {
+        title: {
+            text: `${data.stock_name} 舆情情感与股价变动散点图`,
+            left: 'center'
+        },
+        tooltip: {
+            trigger: 'item',
+            formatter: function(params) {
+                return `情感得分: ${params.value[0].toFixed(4)}<br/>涨跌幅: ${params.value[1].toFixed(2)}%`;
+            }
+        },
+        grid: {
+            left: '15%',
+            right: '10%',
+            bottom: '15%'
+        },
+        xAxis: {
+            type: 'value',
+            name: '情感得分',
+            nameLocation: 'middle',
+            nameGap: 30,
+            min: 0,
+            max: 1
+        },
+        yAxis: {
+            type: 'value',
+            name: '涨跌幅(%)',
+            nameLocation: 'middle',
+            nameGap: 40
+        },
+        series: [{
+            type: 'scatter',
+            data: scatterData,
+            symbolSize: 10,
+            itemStyle: {
+                color: '#4472C4',
+                opacity: 0.7
+            },
+            emphasis: {
+                itemStyle: {
+                    color: '#ED7D31',
+                    opacity: 1
+                }
+            }
+        }]
+    };
+
+    chart.setOption(option);
+}
+
+// 渲染趋势对比图
+function renderTrendChart(data) {
+    const chart = initChart('trendChart');
+    if (!chart || !data.data || data.data.length === 0) return;
+
+    const dates = data.data.map(d => d.date);
+    const sentimentScores = data.data.map(d => d.sentiment_score);
+    const priceChanges = data.data.map(d => d.price_change);
+
+    const option = {
+        tooltip: {
+            trigger: 'axis'
+        },
+        legend: {
+            data: ['情感得分', '股价涨跌幅'],
+            top: 0
+        },
+        grid: {
+            left: '10%',
+            right: '10%',
+            bottom: '15%'
+        },
+        xAxis: {
+            type: 'category',
+            data: dates,
+            axisLabel: {
+                rotate: 45
+            }
+        },
+        yAxis: [
+            {
+                type: 'value',
+                name: '情感得分',
+                position: 'left',
+                min: 0,
+                max: 1
+            },
+            {
+                type: 'value',
+                name: '涨跌幅(%)',
+                position: 'right'
+            }
+        ],
+        series: [
+            {
+                name: '情感得分',
+                type: 'line',
+                data: sentimentScores,
+                smooth: true,
+                itemStyle: { color: '#4472C4' },
+                areaStyle: { color: 'rgba(68, 114, 196, 0.1)' }
+            },
+            {
+                name: '股价涨跌幅',
+                type: 'line',
+                yAxisIndex: 1,
+                data: priceChanges,
+                smooth: true,
+                itemStyle: { color: '#ED7D31' }
+            }
+        ]
+    };
+
+    chart.setOption(option);
+}
+
+// 加载历史分析记录
+function loadHistory() {
+    apiRequest(`${API_BASE}/analysis/results/?analysis_type=correlation`)
+        .done(function(data) {
+            let html = '';
+            data.results.forEach(item => {
+                const significantClass = item.is_significant ? 'text-success' : 'text-muted';
+                html += `
+                    <tr>
+                        <td>${item.stock_code} - ${item.stock_name}</td>
+                        <td>${formatDate(item.analysis_date)}</td>
+                        <td>${item.correlation ? item.correlation.toFixed(4) : '-'}</td>
+                        <td>${item.correlation_strength || '-'}</td>
+                        <td>${item.p_value ? item.p_value.toFixed(6) : '-'}</td>
+                        <td class="${significantClass}">
+                            ${item.is_significant ? '✓ 显著' : '✗ 不显著'}
+                        </td>
+                    </tr>
+                `;
+            });
+            $('#historyTableBody').html(html || '<tr><td colspan="6" class="text-center text-muted">暂无历史记录</td></tr>');
+        });
+}
+
+// 事件绑定
+$('#stockSelect').on('change', function() {
+    $('#btnAnalyze').prop('disabled', !$(this).val());
+});
+
+$('#btnAnalyze').on('click', runAnalysis);
+
+// 页面加载
+$(document).ready(function() {
+    loadStockOptions();
+    loadHistory();
+});
+</script>
+{% endblock %}

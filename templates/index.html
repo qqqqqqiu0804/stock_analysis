@@ -1,0 +1,148 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}首页 - 光伏舆情分析系统{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-md-10">
+        <!-- 欢迎横幅 -->
+        <div class="jumbotron bg-primary text-white rounded p-5 mb-4">
+            <h1 class="display-5"><i class="bi bi-graph-up"></i> 光伏行业舆情与股价关联分析系统</h1>
+            <p class="lead">通过分析光伏行业上市公司的舆情数据和股价数据，研究舆情对股价波动的影响机制</p>
+            <hr class="my-4">
+            <p>本系统提供多源数据采集、情感分析、主题分析、相关性分析等功能，为投资者提供决策参考。</p>
+            <a class="btn btn-light btn-lg" href="/stocks/" role="button">
+                <i class="bi bi-bar-chart"></i> 开始分析
+            </a>
+        </div>
+
+        <!-- 功能卡片 -->
+        <div class="row g-4 mb-4">
+            <div class="col-md-3">
+                <div class="card h-100 border-0 shadow-sm">
+                    <div class="card-body text-center">
+                        <div class="display-4 text-primary mb-3">
+                            <i class="bi bi-bar-chart-line"></i>
+                        </div>
+                        <h5 class="card-title">股票数据</h5>
+                        <p class="card-text text-muted">查看光伏行业股票行情，K线图展示，历史数据查询</p>
+                        <a href="/stocks/" class="btn btn-outline-primary">查看详情</a>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="card h-100 border-0 shadow-sm">
+                    <div class="card-body text-center">
+                        <div class="display-4 text-success mb-3">
+                            <i class="bi bi-newspaper"></i>
+                        </div>
+                        <h5 class="card-title">舆情分析</h5>
+                        <p class="card-text text-muted">情感分析、关键词提取、热门话题识别</p>
+                        <a href="/news/" class="btn btn-outline-success">查看详情</a>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="card h-100 border-0 shadow-sm">
+                    <div class="card-body text-center">
+                        <div class="display-4 text-warning mb-3">
+                            <i class="bi bi-search"></i>
+                        </div>
+                        <h5 class="card-title">关联分析</h5>
+                        <p class="card-text text-muted">舆情情感与股价波动的相关性分析</p>
+                        <a href="/analysis/" class="btn btn-outline-warning">查看详情</a>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="card h-100 border-0 shadow-sm">
+                    <div class="card-body text-center">
+                        <div class="display-4 text-danger mb-3">
+                            <i class="bi bi-file-earmark-text"></i>
+                        </div>
+                        <h5 class="card-title">分析报告</h5>
+                        <p class="card-text text-muted">生成PDF/Excel格式的分析报告</p>
+                        <a href="/reports/" class="btn btn-outline-danger">查看详情</a>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 系统介绍 -->
+        <div class="row">
+            <div class="col-md-6">
+                <div class="card mb-4">
+                    <div class="card-header bg-primary text-white">
+                        <h5 class="mb-0"><i class="bi bi-info-circle"></i> 系统功能</h5>
+                    </div>
+                    <div class="card-body">
+                        <ul class="list-group list-group-flush">
+                            <li class="list-group-item"><i class="bi bi-check-circle text-success"></i> 多源数据采集：股票行情、财经新闻</li>
+                            <li class="list-group-item"><i class="bi bi-check-circle text-success"></i> 情感分析：基于SnowNLP的中文情感分析</li>
+                            <li class="list-group-item"><i class="bi bi-check-circle text-success"></i> 主题分析：LDA主题模型识别热门话题</li>
+                            <li class="list-group-item"><i class="bi bi-check-circle text-success"></i> 相关性分析：皮尔逊相关系数计算</li>
+                            <li class="list-group-item"><i class="bi bi-check-circle text-success"></i> 数据可视化：K线图、趋势图、词云图</li>
+                            <li class="list-group-item"><i class="bi bi-check-circle text-success"></i> 报告生成：PDF/Excel格式分析报告</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-6">
+                <div class="card mb-4">
+                    <div class="card-header bg-success text-white">
+                        <h5 class="mb-0"><i class="bi bi-cpu"></i> 技术栈</h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="row g-3">
+                            <div class="col-6">
+                                <div class="p-3 bg-light rounded">
+                                    <strong>后端</strong>
+                                    <ul class="list-unstyled mt-2 mb-0">
+                                        <li>Python 3.8+</li>
+                                        <li>Django 4.x</li>
+                                        <li>Django REST Framework</li>
+                                        <li>Celery</li>
+                                    </ul>
+                                </div>
+                            </div>
+                            <div class="col-6">
+                                <div class="p-3 bg-light rounded">
+                                    <strong>前端</strong>
+                                    <ul class="list-unstyled mt-2 mb-0">
+                                        <li>Bootstrap 5</li>
+                                        <li>ECharts 5</li>
+                                        <li>jQuery</li>
+                                        <li>HTML5/CSS3</li>
+                                    </ul>
+                                </div>
+                            </div>
+                            <div class="col-6">
+                                <div class="p-3 bg-light rounded">
+                                    <strong>数据分析</strong>
+                                    <ul class="list-unstyled mt-2 mb-0">
+                                        <li>Pandas / NumPy</li>
+                                        <li>jieba / SnowNLP</li>
+                                        <li>scikit-learn</li>
+                                        <li>Matplotlib</li>
+                                    </ul>
+                                </div>
+                            </div>
+                            <div class="col-6">
+                                <div class="p-3 bg-light rounded">
+                                    <strong>数据库</strong>
+                                    <ul class="list-unstyled mt-2 mb-0">
+                                        <li>MySQL 8.0</li>
+                                        <li>SQLite (开发)</li>
+                                        <li>Redis (缓存)</li>
+                                    </ul>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
