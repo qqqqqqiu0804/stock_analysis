@@ -1,0 +1,348 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}光伏舆情分析系统 - 数据大盘{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-md-11">
+        <!-- 标题 -->
+        <div class="d-flex justify-content-between align-items-center mb-4">
+            <h2><i class="bi bi-speedometer2"></i> 数据大盘</h2>
+            <span class="text-muted" id="todayDate"></span>
+        </div>
+
+        <!-- 核心指标卡片 -->
+        <div class="row g-3 mb-4">
+            <div class="col-md-3">
+                <div class="stat-card info">
+                    <div class="stat-value" id="sentimentIndex">-</div>
+                    <div class="stat-label">行业情感指数</div>
+                    <small class="opacity-75">近7天平均</small>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="stat-card success">
+                    <div class="stat-value"><span id="upCount">-</span> / <span id="downCount">-</span></div>
+                    <div class="stat-label">上涨 / 下跌</div>
+                    <small class="opacity-75">今日涨跌家数</small>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="stat-card warning">
+                    <div class="stat-value" id="avgChange">-</div>
+                    <div class="stat-label">平均涨跌幅</div>
+                    <small class="opacity-75">今日行业表现</small>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="stat-card">
+                    <div class="stat-value" id="newsCount">-</div>
+                    <div class="stat-label">本周舆情</div>
+                    <small class="opacity-75">正面 <span id="positiveCount">-</span> / 负面 <span id="negativeCount">-</span></small>
+                </div>
+            </div>
+        </div>
+
+        <!-- 涨跌排行 + 情感对比 -->
+        <div class="row mb-4">
+            <div class="col-md-6">
+                <div class="card h-100">
+                    <div class="card-header">
+                        <h5 class="mb-0"><i class="bi bi-bar-chart"></i> 今日涨跌排行</h5>
+                    </div>
+                    <div class="card-body p-0">
+                        <div class="table-responsive">
+                            <table class="table table-hover mb-0">
+                                <thead>
+                                    <tr>
+                                        <th>股票</th>
+                                        <th>价格</th>
+                                        <th>涨跌幅</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="rankingTable">
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-6">
+                <div class="card h-100">
+                    <div class="card-header">
+                        <h5 class="mb-0"><i class="bi bi-emoji-smile"></i> 各股情感对比</h5>
+                    </div>
+                    <div class="card-body">
+                        <div id="sentimentCompareChart" style="height: 300px;"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 股价走势 + 最新新闻 -->
+        <div class="row mb-4">
+            <div class="col-md-7">
+                <div class="card">
+                    <div class="card-header d-flex justify-content-between align-items-center">
+                        <h5 class="mb-0"><i class="bi bi-graph-up"></i> 股价走势对比（近30天）</h5>
+                    </div>
+                    <div class="card-body">
+                        <div id="priceTrendChart" style="height: 350px;"></div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-5">
+                <div class="card">
+                    <div class="card-header">
+                        <h5 class="mb-0"><i class="bi bi-newspaper"></i> 最新热点</h5>
+                    </div>
+                    <div class="card-body p-0" style="max-height: 400px; overflow-y: auto;">
+                        <div id="latestNewsList" class="list-group list-group-flush">
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 快捷入口 -->
+        <div class="row g-3">
+            <div class="col-md-3">
+                <a href="/stocks/" class="btn btn-outline-primary w-100 py-3">
+                    <i class="bi bi-bar-chart-line fs-4 d-block mb-1"></i>
+                    股票数据
+                </a>
+            </div>
+            <div class="col-md-3">
+                <a href="/news/" class="btn btn-outline-success w-100 py-3">
+                    <i class="bi bi-newspaper fs-4 d-block mb-1"></i>
+                    舆情分析
+                </a>
+            </div>
+            <div class="col-md-3">
+                <a href="/analysis/" class="btn btn-outline-warning w-100 py-3">
+                    <i class="bi bi-search fs-4 d-block mb-1"></i>
+                    关联分析
+                </a>
+            </div>
+            <div class="col-md-3">
+                <a href="/reports/" class="btn btn-outline-danger w-100 py-3">
+                    <i class="bi bi-file-earmark-text fs-4 d-block mb-1"></i>
+                    分析报告
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+// 加载大盘数据
+function loadDashboard() {
+    loadSummary();
+    loadRanking();
+    loadSentimentCompare();
+    loadPriceTrend();
+    loadLatestNews();
+}
+
+// 加载摘要数据
+function loadSummary() {
+    apiRequest(`${API_BASE}/stocks/dashboard/summary/`)
+        .done(function(data) {
+            $('#todayDate').text('数据日期：' + data.today);
+            $('#sentimentIndex').text(data.sentiment.index.toFixed(4));
+
+            // 情感指数颜色
+            const si = data.sentiment.index;
+            if (si > 0.6) $('#sentimentIndex').parent().addClass('success');
+            else if (si < 0.4) $('#sentimentIndex').parent().addClass('warning');
+
+            $('#upCount').text(data.market.up_count);
+            $('#downCount').text(data.market.down_count);
+            $('#avgChange').text((data.market.avg_change >= 0 ? '+' : '') + data.market.avg_change.toFixed(2) + '%');
+            $('#avgChange').css('color', data.market.avg_change >= 0 ? '#ff4444' : '#00cc00');
+
+            $('#newsCount').text(data.sentiment.news_week + '条');
+            $('#positiveCount').text(data.sentiment.positive_week);
+            $('#negativeCount').text(data.sentiment.negative_week);
+        });
+}
+
+// 加载涨跌排行
+function loadRanking() {
+    apiRequest(`${API_BASE}/stocks/dashboard/ranking/`)
+        .done(function(data) {
+            let html = '';
+            data.forEach((stock, i) => {
+                const isUp = stock.change_pct >= 0;
+                const color = isUp ? 'text-danger' : 'text-success';
+                const icon = isUp ? '▲' : '▼';
+                html += `
+                    <tr>
+                        <td>
+                            <strong>${stock.code}</strong> ${stock.name}
+                        </td>
+                        <td>${stock.price.toFixed(2)}</td>
+                        <td class="${color} fw-bold">
+                            ${icon} ${isUp ? '+' : ''}${stock.change_pct.toFixed(2)}%
+                        </td>
+                    </tr>
+                `;
+            });
+            $('#rankingTable').html(html);
+        });
+}
+
+// 加载情感对比
+function loadSentimentCompare() {
+    apiRequest(`${API_BASE}/stocks/dashboard/sentiment/?days=7`)
+        .done(function(data) {
+            const chart = initChart('sentimentCompareChart');
+            if (!chart || data.length === 0) return;
+
+            const names = data.map(d => d.name);
+            const scores = data.map(d => d.sentiment_score);
+
+            const option = {
+                tooltip: {
+                    trigger: 'axis',
+                    formatter: function(params) {
+                        const d = data[params[0].dataIndex];
+                        return `${d.name}<br/>情感得分: ${d.sentiment_score}<br/>新闻数: ${d.news_count}`;
+                    }
+                },
+                grid: {
+                    left: '15%',
+                    right: '10%',
+                    bottom: '10%',
+                    top: '10%'
+                },
+                xAxis: {
+                    type: 'value',
+                    min: 0,
+                    max: 1,
+                    splitLine: { show: true, lineStyle: { type: 'dashed' } }
+                },
+                yAxis: {
+                    type: 'category',
+                    data: names.reverse(),
+                    axisLabel: { width: 60, overflow: 'truncate' }
+                },
+                series: [{
+                    type: 'bar',
+                    data: scores.reverse().map(s => ({
+                        value: s,
+                        itemStyle: {
+                            color: s > 0.6 ? '#28a745' : s < 0.4 ? '#dc3545' : '#ffc107'
+                        }
+                    })),
+                    barWidth: '60%',
+                    label: {
+                        show: true,
+                        position: 'right',
+                        formatter: '{c}'
+                    }
+                }]
+            };
+
+            chart.setOption(option);
+        });
+}
+
+// 加载股价走势
+function loadPriceTrend() {
+    apiRequest(`${API_BASE}/stocks/dashboard/trend/?days=30`)
+        .done(function(data) {
+            const chart = initChart('priceTrendChart');
+            if (!chart) return;
+
+            const colors = ['#4472C4', '#ED7D31', '#A5A5A5', '#FFC000', '#5B9BD5'];
+            const series = [];
+            let i = 0;
+
+            for (const [code, info] of Object.entries(data.stocks)) {
+                series.push({
+                    name: info.name,
+                    type: 'line',
+                    data: info.data,
+                    smooth: true,
+                    showSymbol: false,
+                    lineStyle: { width: 2 },
+                    itemStyle: { color: colors[i % colors.length] }
+                });
+                i++;
+            }
+
+            const option = {
+                tooltip: {
+                    trigger: 'axis',
+                    formatter: function(params) {
+                        let html = params[0].axisValue + '<br/>';
+                        params.forEach(p => {
+                            html += `${p.marker} ${p.seriesName}: ${p.value >= 0 ? '+' : ''}${p.value}%<br/>`;
+                        });
+                        return html;
+                    }
+                },
+                legend: {
+                    data: series.map(s => s.name),
+                    top: 0
+                },
+                grid: {
+                    left: '10%',
+                    right: '10%',
+                    bottom: '15%',
+                    top: '15%'
+                },
+                xAxis: {
+                    type: 'category',
+                    data: data.dates,
+                    axisLabel: { rotate: 45 }
+                },
+                yAxis: {
+                    type: 'value',
+                    name: '相对涨跌幅(%)',
+                    axisLabel: { formatter: '{value}%' }
+                },
+                series: series
+            };
+
+            chart.setOption(option);
+        });
+}
+
+// 加载最新新闻
+function loadLatestNews() {
+    apiRequest(`${API_BASE}/stocks/dashboard/news/?limit=15`)
+        .done(function(data) {
+            let html = '';
+            data.forEach(news => {
+                const badgeClass = news.sentiment_label === 'positive' ? 'bg-success' :
+                                   news.sentiment_label === 'negative' ? 'bg-danger' : 'bg-secondary';
+                const badgeText = news.sentiment_label === 'positive' ? '正面' :
+                                  news.sentiment_label === 'negative' ? '负面' : '中性';
+
+                html += `
+                    <a href="/news/?stock_code=${news.stock_code}" class="list-group-item list-group-item-action">
+                        <div class="d-flex justify-content-between align-items-start">
+                            <div class="flex-grow-1">
+                                <span class="badge ${badgeClass} me-1">${badgeText}</span>
+                                <strong class="me-1">${news.stock_code}</strong>
+                                ${news.title.substring(0, 40)}${news.title.length > 40 ? '...' : ''}
+                            </div>
+                            <small class="text-muted ms-2">${news.publish_time}</small>
+                        </div>
+                    </a>
+                `;
+            });
+            $('#latestNewsList').html(html || '<div class="p-3 text-center text-muted">暂无新闻</div>');
+        });
+}
+
+$(document).ready(function() {
+    loadDashboard();
+});
+</script>
+{% endblock %}

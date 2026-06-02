@@ -13,7 +13,8 @@ urlpatterns = [
     path('admin/', admin.site.urls),
 
     # 页面路由
-    path('', TemplateView.as_view(template_name='index.html'), name='home'),
+    path('', TemplateView.as_view(template_name='dashboard.html'), name='home'),
+    path('about/', TemplateView.as_view(template_name='index.html'), name='about'),
     path('stocks/', TemplateView.as_view(template_name='stocks/index.html'), name='stocks'),
     path('news/', TemplateView.as_view(template_name='news/index.html'), name='news'),
     path('analysis/', TemplateView.as_view(template_name='analysis/index.html'), name='analysis'),
