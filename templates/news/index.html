@@ -8,9 +8,10 @@
     <div class="col-md-11">
         <div class="d-flex justify-content-between align-items-center mb-4">
             <h2><i class="bi bi-newspaper"></i> 舆情分析</h2>
-            <div class="d-flex gap-2">
-                <select id="stockSelect" class="form-select" style="width: 200px;">
-                    <option value="">选择股票</option>
+            <div class="d-flex gap-2 align-items-center">
+                <label class="form-label mb-0 me-2"><strong>选择股票：</strong></label>
+                <select id="stockSelect" class="form-select" style="width: 250px;">
+                    <option value="">-- 请选择股票 --</option>
                 </select>
                 <select id="sentimentFilter" class="form-select" style="width: 120px;">
                     <option value="">全部情感</option>
@@ -127,7 +128,7 @@ let currentPage = 1;
 function loadStockOptions() {
     apiRequest(`${API_BASE}/stocks/list/`)
         .done(function(data) {
-            let html = '<option value="">选择股票</option>';
+            let html = '<option value="">-- 请选择股票 --</option>';
             data.results.forEach(stock => {
                 html += `<option value="${stock.stock_code}">${stock.stock_code} - ${stock.stock_name}</option>`;
             });
@@ -147,11 +148,15 @@ function loadStockOptions() {
 function loadNewsData(page = 1) {
     currentPage = page;
     const stockCode = $('#stockSelect').val();
+    const stockName = $('#stockSelect option:selected').text();
     const sentiment = $('#sentimentFilter').val();
     const days = $('#daysFilter').val();
 
     if (!stockCode) {
         showEmpty('newsTableBody', '请先选择股票');
+        $('#sentimentChart').html('<div class="empty-state"><i class="bi bi-graph-up"></i><p>请先选择股票</p></div>');
+        $('#sentimentPie').html('<div class="empty-state"><i class="bi bi-pie-chart"></i><p>请先选择股票</p></div>');
+        $('#wordCloudChart').html('<div class="empty-state"><i class="bi bi-cloud"></i><p>请先选择股票</p></div>');
         return;
     }
 

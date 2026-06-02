@@ -8,9 +8,10 @@
     <div class="col-md-11">
         <div class="d-flex justify-content-between align-items-center mb-4">
             <h2><i class="bi bi-search"></i> 舆情与股价关联分析</h2>
-            <div class="d-flex gap-2">
-                <select id="stockSelect" class="form-select" style="width: 200px;">
-                    <option value="">选择股票</option>
+            <div class="d-flex gap-2 align-items-center">
+                <label class="form-label mb-0 me-2"><strong>选择股票：</strong></label>
+                <select id="stockSelect" class="form-select" style="width: 250px;">
+                    <option value="">-- 请选择股票 --</option>
                 </select>
                 <select id="daysFilter" class="form-select" style="width: 120px;">
                     <option value="30">近30天</option>
@@ -151,7 +152,7 @@
 function loadStockOptions() {
     apiRequest(`${API_BASE}/stocks/list/`)
         .done(function(data) {
-            let html = '<option value="">选择股票</option>';
+            let html = '<option value="">-- 请选择股票 --</option>';
             data.results.forEach(stock => {
                 html += `<option value="${stock.stock_code}">${stock.stock_code} - ${stock.stock_name}</option>`;
             });

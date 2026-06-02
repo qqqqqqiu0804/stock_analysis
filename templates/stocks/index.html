@@ -99,6 +99,12 @@ function loadStockList() {
                             <button class="btn btn-sm btn-outline-primary" onclick="showKline('${stock.stock_code}', '${stock.stock_name}')">
                                 <i class="bi bi-graph-up"></i> K线图
                             </button>
+                            <a href="/news/?stock_code=${stock.stock_code}" class="btn btn-sm btn-outline-success">
+                                <i class="bi bi-newspaper"></i> 舆情
+                            </a>
+                            <a href="/analysis/?stock_code=${stock.stock_code}" class="btn btn-sm btn-outline-warning">
+                                <i class="bi bi-search"></i> 分析
+                            </a>
                             <button class="btn btn-sm btn-outline-info" onclick="showDetail('${stock.stock_code}')">
                                 <i class="bi bi-info-circle"></i> 详情
                             </button>
