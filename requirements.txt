@@ -13,6 +13,7 @@ matplotlib>=3.7
 seaborn>=0.12
 reportlab>=4.0
 openpyxl>=3.1
+tushare>=1.4
 akshare>=1.10
 requests>=2.31
 beautifulsoup4>=4.12

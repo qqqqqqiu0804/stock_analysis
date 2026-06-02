@@ -152,6 +152,9 @@ CELERY_ACCEPT_CONTENT = ['json']
 CELERY_TASK_SERIALIZER = 'json'
 CELERY_RESULT_SERIALIZER = 'json'
 CELERY_TIMEZONE = 'Asia/Shanghai'
+
+# Tushare Pro Token（从 https://tushare.pro 获取）
+TUSHARE_TOKEN = None  # 替换为你的Token，例如: 'your_token_here'
 CELERY_TASK_TRACK_STARTED = True
 CELERY_TASK_TIME_LIMIT = 30 * 60  # 任务超时时间30分钟
 
