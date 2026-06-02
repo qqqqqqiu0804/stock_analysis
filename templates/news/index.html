@@ -180,10 +180,14 @@ function loadNewsData(page = 1) {
                 const badgeClass = getSentimentBadgeClass(news.sentiment_label);
                 const sentimentText = getSentimentText(news.sentiment_label);
 
+                const titleLink = news.url
+                    ? `<a href="${news.url}" target="_blank" class="text-decoration-none">${news.title}</a>`
+                    : news.title;
+
                 html += `
                     <tr>
                         <td>${formatDate(news.publish_time)}</td>
-                        <td>${news.title}</td>
+                        <td>${titleLink}</td>
                         <td>${news.source_name || '-'}</td>
                         <td><span class="badge ${badgeClass}">${sentimentText}</span></td>
                         <td>${news.sentiment_score ? parseFloat(news.sentiment_score).toFixed(4) : '-'}</td>

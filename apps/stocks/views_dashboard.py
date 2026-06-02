@@ -162,6 +162,7 @@ def dashboard_latest_news(request):
             'sentiment_label': n.sentiment_label,
             'sentiment_score': float(n.sentiment_score) if n.sentiment_score else None,
             'source_name': n.source_name,
+            'url': n.url,
         })
 
     return Response(data)
